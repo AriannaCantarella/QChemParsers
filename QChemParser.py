@@ -498,7 +498,7 @@ class QChemParser:
         current_state = None
         current_energy = None
 
-        for i, line in enumerate(self):
+        for i, line in enumerate(self.file_lines):
             if "RAS-CI total energy for state" in line:
                 current_state = int(re.search(r"state\s+(\d+):", line).group(1))
                 in_state_block = True
@@ -509,16 +509,16 @@ class QChemParser:
 
             if in_state_block and "AMPLITUDE" in line:
                 start_index = i + 2
-                for j in range(start_index, len(lines)):
-                    if "--------------------------------------------------" in lines[j]:
+                for j in range(start_index, len(self.file_lines)):
+                    if "--------------------------------------------------" in self.file_lines[j]:
                         end_index = j
                         break
                 
                 # Extract amplitude data
                 current_amplitudes = []
                 for k in range(start_index, end_index):
-                    if "|" in lines[k] and "AMPLITUDE" not in lines[k]:
-                        parts = [p.strip() for p in lines[k].split("|") if p.strip()]
+                    if "|" in self.file_lines[k] and "AMPLITUDE" not in self.file_lines[k]:
+                        parts = [p.strip() for p in self.file_lines[k].split("|") if p.strip()]
                         if len(parts) == 3:
                             alpha = parts[0]
                             beta = parts[1]
