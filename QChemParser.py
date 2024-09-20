@@ -476,6 +476,76 @@ class QChemParser:
         return df_filtered
 
 
+    def rasci_amplitude_coefficients(file_path):
+        """
+        Processes a RAS-CI output file to extract the amplitude matrix and excitation energies.
+
+        Parameters:
+        file_path (str): Path to the RAS-CI output file.
+
+        Returns:
+        amplitude_df (pd.DataFrame): Transposed DataFrame containing the amplitude matrix, with states as rows and 'alpha|beta' as columns.
+        excitation_energies (list): List containing excitation energies corresponding to each state.
+        """
+        amplitude_df = pd.DataFrame()
+        excitation_energies = []
+        alpha_beta_order = []  # List to keep track of alpha|beta order
+
+        with open(file_path, 'r') as f:
+            lines = f.readlines()
+
+        in_state_block = False
+        current_state = None
+        current_energy = None
+
+        for i, line in enumerate(lines):
+            if "RAS-CI total energy for state" in line:
+                current_state = int(re.search(r"state\s+(\d+):", line).group(1))
+                in_state_block = True
+
+            if in_state_block and "Excitation energy (eV) =" in line:
+                current_energy = float(re.search(r"Excitation energy \(eV\) =\s+([\d\.\-E]+)", line).group(1))
+                excitation_energies.append(current_energy)
+
+            if in_state_block and "AMPLITUDE" in line:
+                start_index = i + 2
+                for j in range(start_index, len(lines)):
+                    if "--------------------------------------------------" in lines[j]:
+                        end_index = j
+                        break
+                
+                # Extract amplitude data
+                current_amplitudes = []
+                for k in range(start_index, end_index):
+                    if "|" in lines[k] and "AMPLITUDE" not in lines[k]:
+                        parts = [p.strip() for p in lines[k].split("|") if p.strip()]
+                        if len(parts) == 3:
+                            alpha = parts[0]
+                            beta = parts[1]
+                            try:
+                                amplitude = float(parts[2])
+                                alpha_beta = f"{alpha}{beta}"
+                                current_amplitudes.append((alpha_beta, amplitude))
+                                if alpha_beta not in alpha_beta_order:
+                                    alpha_beta_order.append(alpha_beta)  # Store order
+                            except ValueError:
+                                continue
+                
+                # Create DataFrame for current state and merge
+                if current_amplitudes:
+                    df_state = pd.DataFrame(current_amplitudes, columns=['alpha|beta', f'State {current_state}'])
+                    df_state.set_index('alpha|beta', inplace=True)
+                    amplitude_df = pd.merge(amplitude_df, df_state, left_index=True, right_index=True, how='outer')
+
+                in_state_block = False  # Reset after processing
+
+        amplitude_df.fillna(0.0, inplace=True)
+
+        # Reorder the columns in the DataFrame based on the order in alpha_beta_order
+        amplitude_df = amplitude_df.T[alpha_beta_order]
+
+        return amplitude_df, excitation_energies
+
 
     def reading_MOs(self, unrestricted=False, n_th_occurrence=-1):
         """Reads and parses the last occurence of orbital sets. Pay attention to when many calculations are printed in the same output file
