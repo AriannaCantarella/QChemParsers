@@ -476,7 +476,7 @@ class QChemParser:
         return df_filtered
 
 
-    def rasci_amplitude_coefficients(file_path):
+    def rasci_amplitude_coefficients(self):
         """
         Processes a RAS-CI output file to extract the amplitude matrix and excitation energies.
 
@@ -491,14 +491,14 @@ class QChemParser:
         excitation_energies = []
         alpha_beta_order = []  # List to keep track of alpha|beta order
 
-        with open(file_path, 'r') as f:
-            lines = f.readlines()
+        # with open(file_path, 'r') as f:
+        #     lines = f.readlines()
 
         in_state_block = False
         current_state = None
         current_energy = None
 
-        for i, line in enumerate(lines):
+        for i, line in enumerate(self):
             if "RAS-CI total energy for state" in line:
                 current_state = int(re.search(r"state\s+(\d+):", line).group(1))
                 in_state_block = True
