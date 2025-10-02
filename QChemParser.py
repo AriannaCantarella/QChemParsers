@@ -558,7 +558,18 @@ class QChemParser:
 
         # Find all occurrences of the start and end indices of the sections
         start_indices = [match.start() for match in re.finditer(r"Orbital Energies \(a\.u\.\)", content)]
-        end_indices = [match.end() for match in re.finditer(r"Ground-State Mulliken Net Atomic Charges", content)]
+        end_indices = [
+            match.start()  # meglio start(), così prendi l'inizio del blocco successivo
+            for match in re.finditer(
+                r"Ground-State Mulliken Net Atomic Charges"
+                r"|MOLECULAR ORBITAL COEFFICIENTS"
+                r"|Total SCF Density",
+                content,
+                re.MULTILINE
+            )
+        ]
+
+        #end_indices = [match.end() for match in re.finditer(r"Ground-State Mulliken Net Atomic Charges", content)]
 
         if not start_indices or not end_indices:
             raise ValueError("Orbital Energies or Mulliken Charges section not found in the file.")
